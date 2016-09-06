@@ -1,0 +1,1 @@
+{"env_id": "CartPole-v0", "params": {"n_iter": 1, "elite_frac": 0.2, "batch_size": 25}, "argv": ["simple_cem.py"]}
