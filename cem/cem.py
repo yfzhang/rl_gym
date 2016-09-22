@@ -1,7 +1,9 @@
+##
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
-
+import argparse, ConfigParser
+##
 class DeterministicDiscreteActionLinearPolicy(object):
     def __init__(self, theta, ob_space, ac_space):
         """
@@ -47,8 +49,11 @@ def do_episode(policy, env, num_steps, render=False):
         a = policy.act(ob)
         (ob, reward, done, _info) = env.step(a)
         total_rew += reward
-        if render and t%3==0: env.render()
-        if done: break
+        if render and t%3==0: 
+            env.render()
+        if done: 
+            print "episode finished after %i steps" %(t+1)
+            break
     return total_rew
 
 def noisy_evaluation(theta):
@@ -64,49 +69,55 @@ def make_policy(theta):
     else:
         raise NotImplementedError
 
-# task settings:
-#env = gym.make('CartPole-v0')
-#env = gym.make('MountainCar-v0')
-env = gym.make('Pendulum-v0')
-num_steps = 500 # max length of epsoide
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='run CEM algorithm')
+    parser.add_argument('config', type=str, help='config file path')
+    args = parser.parse_args()
+    cfg_path = 'cfg/CartPole-v0.cfg'
+    cfg = ConfigParser.RawConfigParser()
+    cfg.read(cfg_path)
+    
+    ## task settings:
+    env = gym.make(cfg.get('settings', 'env'))
+    #env = gym.make('CartPole-v0')
+    #env = gym.make('MountainCar-v0')
+    #env = gym.make('Pendulum-v0')
+    num_steps = cfg.getint('params', 'num_steps') # max length of epsoide
 
-# algorithm settings:
-n_iter = 500 # number of iterations of CEM
-batch_size = 25 # number of samples per batch
-elite_frac = 0.2 # fraction of samples used as elite set
+    # algorithm settings:
+    n_episode = cfg.getint('params', 'num_episodes') # number of iterations of CEM
+    batch_size = cfg.getint('params', 'batch_size') # number of samples per batch
+    elite_frac = cfg.getfloat('params', 'elite_frac') # fraction of samples used as elite set
 
-if isinstance(env.action_space, Discrete):
-    dim_theta = (env.observation_space.shape[0] + 1) * env.action_space.n
-    print "dim_theta %i"%dim_theta
-elif isinstance(env.action_space, Box):
-    dim_theta = (env.observation_space.shape[0] + 1) * env.action_space.shape[0]
-else:
-    raise NotImplementedError
+    if isinstance(env.action_space, Discrete):
+        dim_theta = (env.observation_space.shape[0] + 1) * env.action_space.n
+        print "dim_theta %i"%dim_theta
+    elif isinstance(env.action_space, Box):
+        dim_theta = (env.observation_space.shape[0] + 1) * env.action_space.shape[0]
+    else:
+        raise NotImplementedError
 
-# initialize mean and standard deviation
-theta_mean = np.zeros(dim_theta)
-theta_std = np.ones(dim_theta)
+    # initialize mean and standard deviation
+    theta_mean = np.zeros(dim_theta)
+    theta_std = np.ones(dim_theta)
+    ##
 
-for iteration in xrange(n_iter):
-    """
-    implementation code
-    """
-    # sample parameter vectors
-    thetas = np.array([theta_mean + dth for dth in theta_std[None, :]*np.random.randn(batch_size, theta_mean.size)])
-    rewards = [noisy_evaluation(theta) for theta in thetas]
-    # print(len(rewards))
+    #env.monitor.start('/tmp')
+    for i in xrange(n_episode):
+        """
+        implementation code
+        """
+        # sample parameter vectors
+        thetas = np.array([theta_mean + dth for dth in theta_std[None, :]*np.random.randn(batch_size, theta_mean.size)])
+        rewards = [noisy_evaluation(theta) for theta in thetas]
 
-    # get elite parameters
-    n_elite = int(batch_size * elite_frac)
-    #print "n_elite %i"%n_elite
-    elite_inds = np.argsort(rewards)[batch_size-n_elite:batch_size]
-    #print(elite_inds)
-    #elite_thetas = [thetas[i] for i in elite_inds]
-    #print(thetas.shape)
-    elite_thetas = thetas[elite_inds]
-    #print(elite_thetas) 
-    # update theta_mean, theta_std
-    theta_mean = elite_thetas.mean(axis=0)
-    theta_std = elite_thetas.std(axis=0)
-    print "iteration %i. mean f: %8.3g. max f:%8.3g"%(iteration, np.mean(rewards), np.max(rewards))
-    do_episode(make_policy(theta_mean), env, num_steps, render=True)
+        # get elite parameters
+        n_elite = int(batch_size * elite_frac)
+        elite_inds = np.argsort(rewards)[batch_size-n_elite:batch_size]
+        elite_thetas = thetas[elite_inds]
+        # update theta_mean, theta_std
+        theta_mean = elite_thetas.mean(axis=0)
+        theta_std = elite_thetas.std(axis=0)
+        print "episode %i. mean f: %8.3g. max f:%8.3g"%(i, np.mean(rewards), np.max(rewards))
+        do_episode(make_policy(theta_mean), env, num_steps, render=True)
+    #env.monitor.close()
