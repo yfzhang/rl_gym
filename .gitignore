@@ -1,3 +1,5 @@
 dqn/
 *.mp4
 *.json
+.idea/
+
