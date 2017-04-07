@@ -3,12 +3,15 @@ import os
 
 tf.flags.DEFINE_string("mode", "train", "choices=[train, test]")
 tf.flags.DEFINE_string("model", "3dense", "NN model")
+tf.flags.DEFINE_string("memory", "sequential", "memory type")
 tf.flags.DEFINE_string("agent", "dqn", "for example, dqn")
 tf.flags.DEFINE_string("game", None, "game environment. Ex: Humanoid-v1, OffRoadNav-v0")
 tf.flags.DEFINE_string("base-dir", "exp", "Directory to write summaries and models to.")
 tf.flags.DEFINE_integer("save-weight-interval", 10000, "number of steps before saving the model weight")
 tf.flags.DEFINE_integer("save-log-interval", 100, "number of episodes before saving the model weight")
 tf.flags.DEFINE_integer("max-steps", 5000, "max number of steps for the whole training")
+tf.flags.DEFINE_integer("memory-limit", 1000000, "memory size")
+tf.flags.DEFINE_integer("memory-window-length", 4, "memory window size")
 tf.flags.DEFINE_boolean("visualize-train", True, "visualize the training process")
 
 
